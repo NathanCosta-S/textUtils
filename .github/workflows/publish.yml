@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout código
@@ -77,9 +77,6 @@ jobs:
           source .venv/bin/activate
           twine check dist/*
 
-      - name: Listar arquivos gerados
-        run: ls -lh dist/
-
       - name: Upload artefatos
         uses: actions/upload-artifact@v4
         with:
@@ -87,12 +84,16 @@ jobs:
           path: dist/
 
   publish:
-    name: Publicar no PyPI (Token)
+    name: Publicar no PyPI
     needs: build
     runs-on: ubuntu-latest
-
-    # Executa somente quando uma release é publicada
+    
     if: github.event_name == 'release'
+
+    # ESSENCIAL para Trusted Publishing (OIDC) funcionar:
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Baixar artefatos
@@ -101,10 +102,6 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Confirmar arquivos
-        run: ls -lh dist/
-
       - name: Publicar no PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        # Removido o 'with: password' pois agora usa o OIDC (Trusted Publishing)
