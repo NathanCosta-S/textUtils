@@ -1,104 +1,28 @@
-name: CI/CD Python Package
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  release:
-    types: [published]
+[project]
+name = "text-utils-ronnie"
+version = "0.1.0"  # Lembre-se de aumentar aqui antes de cada release
+authors = [
+  { name="Nathan da Costa Silva", email="seu-email@exemplo.com" },
+]
+description = "Uma biblioteca útil para manipulação de textos"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    # Liste aqui as bibliotecas que seu código usa (ex: requests, numpy)
+]
 
-jobs:
-  test:
-    name: Testes (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+[project.urls]
+"Homepage" = "https://github.com/NathanCosta-S/textUtils"
+"Bug Tracker" = "https://github.com/NathanCosta-S/textUtils/issues"
 
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-
-      - name: Criar ambiente virtual
-        run: python -m venv .venv
-
-      - name: Instalar dependências
-        run: |
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install pytest build
-          pip install -e .
-
-      - name: Rodar testes
-        run: |
-          source .venv/bin/activate
-          pytest
-
-  build:
-    name: Build pacote
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Criar ambiente virtual
-        run: python -m venv .venv
-
-      - name: Instalar dependências
-        run: |
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Gerar pacote
-        run: |
-          source .venv/bin/activate
-          python -m build
-
-      - name: Verificar pacote
-        run: |
-          source .venv/bin/activate
-          twine check dist/*
-
-      - name: Upload artefatos
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    name: Publicar no PyPI
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Baixar artefatos
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Publicar no PyPI
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+[tool.pytest.ini_options]
+testpaths = ["tests"]
