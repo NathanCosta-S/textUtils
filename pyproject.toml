@@ -16,7 +16,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Adicionado 3.13 para manter o projeto atualizado
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
@@ -88,11 +87,8 @@ jobs:
     name: Publicar no PyPI
     needs: build
     runs-on: ubuntu-latest
-    
-    # Executa somente quando uma release é publicada
     if: github.event_name == 'release'
 
-    # Permissões necessárias para o Trusted Publishing (OIDC)
     permissions:
       id-token: write
       contents: read
@@ -105,6 +101,4 @@ jobs:
           path: dist/
 
       - name: Publicar no PyPI
-        # Versão fixa para evitar avisos de Node.js obsoleto
         uses: pypa/gh-action-pypi-publish@v1.12.4
-        # Não é mais necessário usar 'password' com Trusted Publishing configurado
