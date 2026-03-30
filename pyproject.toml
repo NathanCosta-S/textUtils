@@ -1,19 +1,110 @@
-[build-system]
-requires = ["setuptools>=75.0", "wheel"]
-build-backend = "setuptools.build_meta"
+name: CI/CD Python Package
 
-[project]
-name = "text-utils-ronnie"
-version = "0.1.0"
-description = "Biblioteca para manipulação de texto"
-readme = "README.md"
-authors = [
-    {name = "Ronnie Campos", email = "ronnie@email.com"}
-]
-license = {text = "MIT"}
-requires-python = ">=3.10"
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  release:
+    types: [published]
 
-dependencies = []
+jobs:
+  test:
+    name: Testes (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
 
-[project.urls]
-"Homepage" = "https://github.com/NathanCosta-S/text_utils"
+    strategy:
+      fail-fast: false
+      matrix:
+        # Adicionado 3.13 para manter o projeto atualizado
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Criar ambiente virtual
+        run: python -m venv .venv
+
+      - name: Instalar dependências
+        run: |
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install pytest build
+          pip install -e .
+
+      - name: Rodar testes
+        run: |
+          source .venv/bin/activate
+          pytest
+
+  build:
+    name: Build pacote
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Criar ambiente virtual
+        run: python -m venv .venv
+
+      - name: Instalar dependências
+        run: |
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Gerar pacote
+        run: |
+          source .venv/bin/activate
+          python -m build
+
+      - name: Verificar pacote
+        run: |
+          source .venv/bin/activate
+          twine check dist/*
+
+      - name: Upload artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publicar no PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    
+    # Executa somente quando uma release é publicada
+    if: github.event_name == 'release'
+
+    # Permissões necessárias para o Trusted Publishing (OIDC)
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Baixar artefatos
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publicar no PyPI
+        # Versão fixa para evitar avisos de Node.js obsoleto
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        # Não é mais necessário usar 'password' com Trusted Publishing configurado
